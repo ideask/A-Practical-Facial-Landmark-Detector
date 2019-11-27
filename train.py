@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 import torch
-
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tensorboardX import SummaryWriter
@@ -38,9 +38,20 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected')
 
 
-def train(train_loader, plfd_backbone, auxiliarynet, criterion, optimizer,
+def train(train_loader, plfd_backbone, auxiliarynet, GPUs, criterion, optimizer,
           epoch):
     losses = AverageMeter()
+
+    # set CUDA_VISIBLE_DEVICES
+    if len(GPUs) > 0:
+        gpus = ','.join([str(x) for x in GPUs])
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+        GPUs = tuple(range(len(GPUs)))
+        # logging.info('Set CUDA_VISIBLE_DEVICES to {}...'.format(GPUs))
+        plfd_backbone = nn.DataParallel(plfd_backbone, device_ids=GPUs)
+        plfd_backbone = plfd_backbone.cuda()
+        auxiliarynet = nn.DataParallel(auxiliarynet, device_ids=GPUs)
+        auxiliarynet = auxiliarynet.cuda()
 
     for img, landmark_gt, attribute_gt, euler_angle_gt in train_loader:
         img.requires_grad = False
@@ -54,9 +65,6 @@ def train(train_loader, plfd_backbone, auxiliarynet, criterion, optimizer,
 
         euler_angle_gt.requires_grad = False
         euler_angle_gt = euler_angle_gt.cuda(non_blocking=True)
-
-        plfd_backbone = plfd_backbone.cuda()
-        auxiliarynet = auxiliarynet.cuda()
 
         features, landmarks = plfd_backbone(img)
         angle = auxiliarynet(features)
@@ -115,9 +123,11 @@ def main(args):
         ])
     print_args(args)
 
+    GPUs = [int(x) for x in args.devices_id.split(',')]
+
     # Step 2: model, criterion, optimizer, scheduler
-    plfd_backbone = PFLDInference().cuda()
-    auxiliarynet = AuxiliaryNet().cuda()
+    plfd_backbone = PFLDInference()
+    auxiliarynet = AuxiliaryNet()
     if args.resume != '':
         logging.info('Load the checkpoint:{}'.format(args.resume))
         checkpoint = torch.load(args.resume)
@@ -139,9 +149,13 @@ def main(args):
     # argumetion
     transform = transforms.Compose([transforms.ToTensor()])
     wlfwdataset = WLFWDatasets(args.dataroot, transform)
+
+    train_batchsize = args.train_batchsize if len(GPUs) == 0 else args.train_batchsize * len(GPUs)
+    val_batchsize = args.val_batchsize if len(GPUs) == 0 else args.val_batchsize * len(GPUs)
+
     dataloader = DataLoader(
         wlfwdataset,
-        batch_size=args.train_batchsize,
+        batch_size=train_batchsize,
         shuffle=True,
         num_workers=args.workers,
         drop_last=False)
@@ -149,14 +163,14 @@ def main(args):
     wlfw_val_dataset = WLFWDatasets(args.val_dataroot, transform)
     wlfw_val_dataloader = DataLoader(
         wlfw_val_dataset,
-        batch_size=args.val_batchsize,
+        batch_size=val_batchsize,
         shuffle=False,
         num_workers=args.workers)
 
     # step 4: run
     writer = SummaryWriter(args.tensorboard)
     for epoch in range(args.start_epoch, args.end_epoch + 1):
-        weighted_train_loss, train_loss = train(dataloader, plfd_backbone, auxiliarynet,
+        weighted_train_loss, train_loss = train(dataloader, plfd_backbone, auxiliarynet, GPUs,
                                       criterion, optimizer, epoch)
         filename = os.path.join(
             str(args.snapshot), "checkpoint_epoch_" + str(epoch) + '.pth.tar')
@@ -178,7 +192,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description='A Practical Facial Landmark Detector Training')
     # general
-    parser.add_argument('-j', '--workers', default=8, type=int)
+    parser.add_argument('-j', '--workers', default=16, type=int)
     parser.add_argument('--devices_id', default='0', type=str)  #TBD
     parser.add_argument('--test_initial', default='false', type=str2bool)  #TBD
 

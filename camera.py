@@ -18,7 +18,7 @@ def main(args):
     plfd_backbone.eval()
     plfd_backbone = plfd_backbone.cuda()
     transform = transforms.Compose([transforms.ToTensor()])
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     sz = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     fps = 20
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -68,7 +68,7 @@ def main(args):
             pre_landmark = landmarks[0]
             pre_landmark = pre_landmark.cpu().detach().numpy().reshape(-1, 2) * [size, size]
             for (x, y) in pre_landmark.astype(np.int32):
-                cv2.circle(img, (x1 + x, y1 + y), 1, (0, 0, 255), 0)
+                cv2.circle(img, (x1 + x, y1 + y), 1, (0, 255, 0), -1)
         vout.write(img)
         cv2.imshow('0', img)
         if cv2.waitKey(10) == 27:
