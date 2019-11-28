@@ -97,11 +97,11 @@ def validate(wlfw_val_dataloader, plfd_backbone, auxiliarynet):
 
             for (x, y) in pre_landmark.astype(np.int32):
                 # print("x:{0:}, y:{1:}".format(x, y))
-                cv2.circle(img_clone, (x, y), 1, (255,0,0),0)
-
-            for (x, y) in pre_landmark_gt.astype(np.int32):
-                # print("x:{0:}, y:{1:}".format(x, y))
                 cv2.circle(img_clone, (x, y), 1, (0,255,0),0)
+
+            # for (x, y) in pre_landmark_gt.astype(np.int32):
+            #     # print("x:{0:}, y:{1:}".format(x, y))
+            #     cv2.circle(img_clone, (x, y), 1, (0,255,0),0)
 
             show_img_list.append(img_clone)
 
@@ -127,7 +127,7 @@ def main(args):
 
     wlfw_val_dataset = WLFWDatasets(args.test_dataset, transform)
     wlfw_val_dataloader = DataLoader(
-        wlfw_val_dataset, batch_size=8, shuffle=False, num_workers=0)
+        wlfw_val_dataset, batch_size=8, shuffle=True, num_workers=0)
 
     validate(wlfw_val_dataloader, plfd_backbone, auxiliarynet)
 

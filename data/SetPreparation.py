@@ -238,7 +238,7 @@ def get_dataset_list(imgDir, outDir, landmarkDir, is_train):
             # imgDir + 图片名
             img_name = Img.path
             # 是否为训练样本， 图片增强次数，
-            Img.load_data(is_train, 10, Mirror_file)
+            Img.load_data(is_train, 20, Mirror_file)
             # os.path.split（）返回文件的路径和文件名
             _, filename = os.path.split(img_name)
             # os.path.splitext(“文件路径”)    分离文件名与扩展名；默认返回(fname, fextension)元组，可做分片操作

@@ -198,7 +198,7 @@ def parse_args():
 
     # training
     ##  -- optimizer
-    parser.add_argument('--base_lr', default=0.0001, type=int)
+    parser.add_argument('--base_lr', default=0.0001, type=float)
     parser.add_argument('--weight-decay', '--wd', default=1e-6, type=float)
 
     # -- lr

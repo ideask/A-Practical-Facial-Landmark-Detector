@@ -255,30 +255,27 @@ def run_first_stage(image, net, scale, threshold):
 def _generate_bboxes(probs, offsets, scale, threshold):
     stride = 2
     cell_size = 12
-    # print(probs,threshold)
+
     inds = np.where(probs > threshold)
-    # print(inds)
     if inds[0].size == 0:
         return np.array([])
 
     tx1, ty1, tx2, ty2 = [offsets[0, i, inds[0], inds[1]] for i in range(4)]
     offsets = np.array([tx1, ty1, tx2, ty2])
     score = probs[inds[0], inds[1]]
-    # print('===============================')
-    # print(score)
+
     bounding_boxes = np.vstack([
         np.round((stride * inds[1] + 1.0) / scale),
         np.round((stride * inds[0] + 1.0) / scale),
         np.round((stride * inds[1] + 1.0 + cell_size) / scale),
         np.round((stride * inds[0] + 1.0 + cell_size) / scale), score, offsets
     ])
-
     return bounding_boxes.T
 
 
 def detect_faces(image,
                  min_face_size=20.0,
-                 thresholds=[0.11, 0.8, 0.9],
+                 thresholds=[0.6, 0.7, 0.8],
                  nms_thresholds=[0.7, 0.7, 0.7]):
 
     pnet, rnet, onet = PNet(), RNet(), ONet()
@@ -302,9 +299,9 @@ def detect_faces(image,
     # STAGE 1
     bounding_boxes = []
     for s in scales:  # run P-Net on different scales
-        # print(s)
         boxes = run_first_stage(image, pnet, scale=s, threshold=thresholds[0])
         bounding_boxes.append(boxes)
+
     # collect boxes (and offsets, and scores) from different scales
     bounding_boxes = [i for i in bounding_boxes if i is not None]
     bounding_boxes = np.vstack(bounding_boxes)
@@ -366,16 +363,16 @@ def detect_faces(image,
     return bounding_boxes, landmarks
 
 
-if __name__ == '__main__':
-    import cv2
-    cap = cv2.VideoCapture(1)
-    while True:
-        ret, img = cap.read()
-        if not ret: break
-        bounding_boxes, landmarks = detect_faces(img)
-        image = show_bboxes(img, bounding_boxes, landmarks)
+# if __name__ == '__main__':
+#     import cv2
+#     cap = cv2.VideoCapture(0)
+#     while True:
+#         ret, img = cap.read()
+#         if not ret: break
+#         bounding_boxes, landmarks = detect_faces(img)
+#         image = show_bboxes(img, bounding_boxes, landmarks)
 
-        # image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        cv2.imshow('0', image)
-        if cv2.waitKey(10) == 27:
-            break
+#         # image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+#         cv2.imshow('0', image)
+#         if cv2.waitKey(10) == 27:
+#             break
