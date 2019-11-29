@@ -31,8 +31,7 @@ Implementation of PFLD A Practical Facial Landmark Detector by pytorch.
   - Run `python camera.py` 
   
 ### Result
-- Predict
-
+  ![](./result/result.gif)
   ![](./result/result1.png)
   ![](./result/result2.png)
 
